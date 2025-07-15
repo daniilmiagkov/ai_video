@@ -3,7 +3,7 @@ import '../models/chat_session.dart';
 import 'chat_screen.dart';  // сейчас ChatScreen не принимает sessionId
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({Key? key}) : super(key: key);
+  const HistoryScreen({super.key});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -40,8 +40,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _newSession,
-        child: const Icon(Icons.add),
         tooltip: 'Новый чат',
+        child: const Icon(Icons.add),
       ),
     );
   }

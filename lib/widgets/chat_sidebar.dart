@@ -14,28 +14,33 @@ class ChatSidebar extends StatelessWidget {
     required this.onSessionSelected,
   });
 
+  void _selectAndClose(BuildContext context, String sessionId) {
+    onSessionSelected(sessionId);
+    Navigator.of(context).pop(); // Закрыть drawer
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 200,
-      color: Colors.grey[100],
+    return Drawer(
+      // Drawer уже сам задаёт ширину и фон
       child: Column(
         children: [
+          const SizedBox(height: 56, child: DrawerHeader(child: Text('Чаты'))),
           ListTile(
             leading: const Icon(Icons.add),
             title: const Text('Новый чат'),
-            onTap: () => onSessionSelected(''),
+            onTap: () => _selectAndClose(context, ''),
           ),
-          const Divider(),
+          const Divider(height: 1),
           Expanded(
             child: ListView.builder(
               itemCount: sessions.length,
-              itemBuilder: (_, i) {
-                final s = sessions[i];
+              itemBuilder: (context, index) {
+                final session = sessions[index];
                 return ListTile(
-                  title: Text(s.title),
-                  selected: s.id == activeSessionId,
-                  onTap: () => onSessionSelected(s.id),
+                  title: Text(session.title),
+                  selected: session.id == activeSessionId,
+                  onTap: () => _selectAndClose(context, session.id),
                 );
               },
             ),
