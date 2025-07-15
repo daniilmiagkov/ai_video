@@ -18,6 +18,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final _uuid = const Uuid();
   final List<ChatSession> _sessions = [];
   String _activeSessionId = '';
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _textController = TextEditingController(); // 🆕
 
   @override
   void initState() {
@@ -31,6 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
       _sessions.add(ChatSession(id: id, title: 'Чат ${_sessions.length + 1}'));
       _activeSessionId = id;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   void _onSessionSelected(String sessionId) {
@@ -41,6 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _activeSessionId = sessionId;
       });
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   void _handleSend(String text) {
@@ -49,16 +53,32 @@ class _ChatScreenState extends State<ChatScreen> {
       session.messages.add(ChatMessage(id: _uuid.v4(), text: text, isUser: true));
       session.messages.add(ChatMessage(id: _uuid.v4(), text: 'Ответ ассистента...', isUser: false));
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 60,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
- @override
-Widget build(BuildContext context) {
-  final activeSession = _sessions.firstWhere((s) => s.id == _activeSessionId);
+  void dispose() {
+    _scrollController.dispose();
+    _textController.dispose(); // 🧼
+    super.dispose();
+  }
 
-  return GestureDetector(
-    onTap: () => FocusScope.of(context).unfocus(),
-    child: Scaffold(
+  @override
+  Widget build(BuildContext context) {
+    final activeSession =
+        _sessions.firstWhere((s) => s.id == _activeSessionId);
+
+    return Scaffold(
       drawer: ChatSidebar(
         sessions: _sessions,
         activeSessionId: _activeSessionId,
@@ -77,16 +97,19 @@ Widget build(BuildContext context) {
         children: [
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(12),
               itemCount: activeSession.messages.length,
               itemBuilder: (_, i) =>
                   ChatBubble(message: activeSession.messages[i]),
             ),
           ),
-          ChatInput(onSend: _handleSend),
+          ChatInput(
+            onSend: _handleSend,
+            controller: _textController, // 🆕 передаём контроллер
+          ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 }

@@ -3,46 +3,46 @@ import 'package:flutter/material.dart';
 
 class ChatInput extends StatefulWidget {
   final ValueChanged<String> onSend;
-  const ChatInput({super.key, required this.onSend});
+  final TextEditingController controller; // 🆕
+
+  const ChatInput({
+    super.key,
+    required this.onSend,
+    required this.controller,
+  });
 
   @override
   State<ChatInput> createState() => _ChatInputState();
 }
 
 class _ChatInputState extends State<ChatInput> {
-  final _ctrl = TextEditingController();
-
-  void _send() {
-    final txt = _ctrl.text.trim();
-    if (txt.isNotEmpty) {
-      widget.onSend(txt);
-      _ctrl.clear();
+  void _handleSend() {
+    final text = widget.controller.text.trim();
+    if (text.isNotEmpty) {
+      widget.onSend(text);
+      widget.controller.clear();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-      top: false,
       child: Padding(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.all(8),
         child: Row(
           children: [
             Expanded(
               child: TextField(
-                controller: _ctrl,
+                controller: widget.controller,
                 decoration: const InputDecoration(
-                  hintText: 'Напишите сообщение...',
+                  hintText: 'Введите сообщение...',
                   border: OutlineInputBorder(),
                 ),
-                onSubmitted: (_) => _send(),
               ),
             ),
-            const SizedBox(width: 8),
             IconButton(
               icon: const Icon(Icons.send),
-              onPressed: _send,
+              onPressed: _handleSend,
             ),
           ],
         ),
