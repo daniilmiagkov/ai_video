@@ -1,8 +1,11 @@
-// lib/screens/chat_screen.dart
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
-import '../models/chat_session.dart';
+
+import '../api/websocket_service.dart';
 import '../models/chat_message.dart';
+import '../models/chat_session.dart';
+import '../models/user_message.dart';
+import '../models/server_message.dart'; // ⬅️ не забываем!
 import '../widgets/chat_sidebar.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input.dart';
@@ -18,21 +21,46 @@ class _ChatScreenState extends State<ChatScreen> {
   final _uuid = const Uuid();
   final List<ChatSession> _sessions = [];
   String _activeSessionId = '';
-  final ScrollController _scrollController = ScrollController();
-  final TextEditingController _textController = TextEditingController(); // 🆕
+  final _scrollController = ScrollController();
+  final _textController = TextEditingController();
+
+  late final ChatService _chatService;
 
   @override
   void initState() {
     super.initState();
     _createNewSession();
+
+    _chatService = ChatService('ws://10.0.2.2:8080');
+
+_chatService.onConnected = () => print('WebSocket connected');
+_chatService.onDisconnected = () => print('WebSocket disconnected');
+_chatService.onError = (e) => print('WebSocket error: $e');
+
+
+    _chatService.messages.listen((serverMessage) {
+      final session = _sessions.firstWhere((s) => s.id == _activeSessionId);
+      final chatMessage = ChatMessage.fromServer(serverMessage);
+
+      setState(() {
+        session.messages.add(chatMessage);
+      });
+
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    });
+
   }
 
   void _createNewSession() {
     final id = _uuid.v4();
     setState(() {
-      _sessions.add(ChatSession(id: id, title: 'Чат ${_sessions.length + 1}'));
+      _sessions.add(ChatSession(
+        id: id,
+        title: 'Чат ${_sessions.length + 1}',
+      ));
       _activeSessionId = id;
     });
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
@@ -40,20 +68,27 @@ class _ChatScreenState extends State<ChatScreen> {
     if (sessionId.isEmpty) {
       _createNewSession();
     } else {
-      setState(() {
-        _activeSessionId = sessionId;
-      });
+      setState(() => _activeSessionId = sessionId);
     }
+
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
   void _handleSend(String text) {
     final session = _sessions.firstWhere((s) => s.id == _activeSessionId);
+    final id = DateTime.now().millisecondsSinceEpoch.toString();
+
+    final userMessage = UserMessage(
+      id: id,
+      text: text,
+      timestamp: DateTime.now(),
+    );
+
     setState(() {
-      session.messages.add(ChatMessage(id: _uuid.v4(), text: text, isUser: true));
-      session.messages.add(ChatMessage(id: _uuid.v4(), text: 'Ответ ассистента...', isUser: false));
+      session.messages.add(ChatMessage.fromUser(userMessage));
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    _chatService.sendUserMessage(userMessage);
   }
 
   void _scrollToBottom() {
@@ -68,8 +103,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _chatService.dispose();
     _scrollController.dispose();
-    _textController.dispose(); // 🧼
+    _textController.dispose();
     super.dispose();
   }
 
@@ -100,13 +136,14 @@ class _ChatScreenState extends State<ChatScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.all(12),
               itemCount: activeSession.messages.length,
-              itemBuilder: (_, i) =>
-                  ChatBubble(message: activeSession.messages[i]),
+              itemBuilder: (_, i) => ChatBubble(
+                message: activeSession.messages[i],
+              ),
             ),
           ),
           ChatInput(
             onSend: _handleSend,
-            controller: _textController, // 🆕 передаём контроллер
+            controller: _textController,
           ),
         ],
       ),

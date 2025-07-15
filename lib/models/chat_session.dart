@@ -1,5 +1,4 @@
-// lib/models/chat_session.dart
-import 'chat_message.dart';
+import 'package:my_app/models/chat_message.dart';
 
 class ChatSession {
   final String id;

@@ -38,6 +38,8 @@ dependencies:
   file_selector: ^1.0.3
   mockito: ^5.0.0       # для моков, если понадобится
   uuid: ^4.5.1
+  flutter_markdown: ^0.7.7+1
+  web_socket_channel: ^3.0.3
 
 
 dev_dependencies:

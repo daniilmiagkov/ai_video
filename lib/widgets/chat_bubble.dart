@@ -1,4 +1,3 @@
-// lib/widgets/chat_bubble.dart
 import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
 
@@ -10,23 +9,43 @@ class ChatBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUser = message.isUser;
+    final isSystem = message.type == ChatMessageType.system;
+
+    final backgroundColor = isSystem
+        ? Colors.grey.shade300
+        : isUser
+            ? Theme.of(context).colorScheme.primary
+            : Colors.grey.shade200;
+
+    final textColor = isSystem
+        ? Colors.black54
+        : isUser
+            ? Colors.white
+            : Colors.black87;
+
+    final alignment = isSystem
+        ? Alignment.center
+        : isUser
+            ? Alignment.centerRight
+            : Alignment.centerLeft;
+
+    final body = message.body?.toString() ?? '';
+
     return Align(
-      alignment:
-          isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: alignment,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.all(12),
         constraints: const BoxConstraints(maxWidth: 300),
         decoration: BoxDecoration(
-          color: isUser
-              ? Theme.of(context).colorScheme.primary
-              : Colors.grey.shade200,
+          color: backgroundColor,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
-          message.text,
+          body,
           style: TextStyle(
-            color: isUser ? Colors.white : Colors.black87,
+            color: textColor,
+            fontStyle: isSystem ? FontStyle.italic : FontStyle.normal,
           ),
         ),
       ),
