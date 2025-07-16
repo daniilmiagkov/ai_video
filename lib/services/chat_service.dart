@@ -1,20 +1,23 @@
+// lib/api/chat_service.dart
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:ui';
+
+import 'package:flutter/foundation.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/html.dart';
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/status.dart' as status;
 
 import '../models/server_message.dart';
 import '../models/user_message.dart';
 
 class ChatService {
   final String url;
-  WebSocket? _socket;
+  late final WebSocketChannel _channel;
 
-  // Поток для входящих сообщений
-  final StreamController<ServerMessage> _messageController = StreamController.broadcast();
-  Stream<ServerMessage> get messages => _messageController.stream;
+  final _controller = StreamController<ServerMessage>.broadcast();
+  Stream<ServerMessage> get messages => _controller.stream;
 
-  // Колбэки для событий
   VoidCallback? onConnected;
   VoidCallback? onDisconnected;
   void Function(Object error)? onError;
@@ -23,54 +26,45 @@ class ChatService {
     _connect();
   }
 
-  Future<void> _connect() async {
+  void _connect() {
     try {
-      _socket = await WebSocket.connect(url);
+      // Выбираем реализацию по платформе
+      if (kIsWeb) {
+        _channel = HtmlWebSocketChannel.connect(url);
+      } else {
+        _channel = IOWebSocketChannel.connect(Uri.parse(url));
+      }
 
       onConnected?.call();
 
-      _socket!.listen(
+      _channel.stream.listen(
         (data) {
           try {
-            final Map<String, dynamic> json = jsonDecode(data);
-            final msg = ServerMessage.fromJson(json);
-            _messageController.add(msg);
+            final jsonMap = jsonDecode(data);
+            final msg = ServerMessage.fromJson(jsonMap);
+            _controller.add(msg);
           } catch (e) {
             onError?.call(e);
           }
         },
-        onDone: () {
-          onDisconnected?.call();
-          _reconnect();
-        },
-        onError: (error) {
-          onError?.call(error);
-          _reconnect();
-        },
+        onDone: () => onDisconnected?.call(),
+        onError: (err) => onError?.call(err),
       );
     } catch (e) {
       onError?.call(e);
-      // Можно попытаться переподключиться позже
-      _reconnect();
     }
   }
 
-  void _reconnect() {
-    Future.delayed(const Duration(seconds: 5), () {
-      _connect();
-    });
-  }
-
-  void sendUserMessage(UserMessage userMessage) {
-    if (_socket != null && _socket!.readyState == WebSocket.open) {
-      _socket!.add(jsonEncode(userMessage.toJson()));
-    } else {
-      onError?.call('WebSocket is not connected');
+  void sendUserMessage(UserMessage msg) {
+    try {
+      _channel.sink.add(jsonEncode(msg.toJson()));
+    } catch (e) {
+      onError?.call(e);
     }
   }
 
   void dispose() {
-    _messageController.close();
-    _socket?.close();
+    _channel.sink.close(status.goingAway);
+    _controller.close();
   }
 }

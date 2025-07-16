@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:my_app/config.dart';
+import 'package:my_app/services/chat_service.dart';
 import 'package:uuid/uuid.dart';
 
-import '../api/websocket_service.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../models/user_message.dart';
@@ -31,7 +32,7 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     _createNewSession();
 
-    _chatService = ChatService('ws://10.0.2.2:8080');
+    _chatService = ChatService(AppConfig.websocketUrl);
 
 _chatService.onConnected = () => print('WebSocket connected');
 _chatService.onDisconnected = () => print('WebSocket disconnected');
