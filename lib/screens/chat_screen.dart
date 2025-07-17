@@ -105,44 +105,56 @@ _chatService.onError = (e) => print('WebSocket error: $e');
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final activeSession =
-        _sessions.firstWhere((s) => s.id == _activeSessionId);
+ @override
+Widget build(BuildContext context) {
+  final activeSession =
+      _sessions.firstWhere((s) => s.id == _activeSessionId);
 
-    return Scaffold(
-      drawer: ChatSidebar(
-        sessions: _sessions,
-        activeSessionId: _activeSessionId,
-        onSessionSelected: _onSessionSelected,
-      ),
-      appBar: AppBar(
-        title: Text(activeSession.title),
-        leading: Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
+  return Scaffold(
+    drawer: ChatSidebar(
+      sessions: _sessions,
+      activeSessionId: _activeSessionId,
+      onSessionSelected: _onSessionSelected,
+    ),
+    appBar: AppBar(
+      title: Text(activeSession.title),
+      leading: Builder(
+        builder: (ctx) => IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () => Scaffold.of(ctx).openDrawer(),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(12),
-              itemCount: activeSession.messages.length,
-              itemBuilder: (_, i) => ChatBubble(
-                message: activeSession.messages[i],
+    ),
+    body: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 600),
+        child: Column(
+          children: [
+            // Список сообщений
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(12),
+                itemCount: activeSession.messages.length,
+                itemBuilder: (_, i) =>
+                    ChatBubble(message: activeSession.messages[i]),
               ),
             ),
+            // Поле ввода
+SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 12.0),
+            child: ChatInput(
+              controller: _textController,
+              onSend: _handleSend,
+            ),
           ),
-     ChatInput(
-  controller: _textController,
-  onSend: _handleSend, // где ты уже обрабатываешь UserMessage
-),
-        ],
+        ),
+          ],
+        ),
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

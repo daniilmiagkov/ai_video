@@ -1,64 +1,72 @@
 // lib/models/user_message.dart
+
 import 'dart:convert';
 import 'dart:typed_data';
+import 'attachment.dart';
 
 class UserMessage {
   final String id;
   final String text;
   final DateTime timestamp;
-  final String? fileName;
-  final String? mimeType;
-  final Uint8List? fileBytes;
+  final List<Attachment> attachments;
 
   UserMessage({
     required this.id,
     required this.text,
     required this.timestamp,
-    this.fileName,
-    this.mimeType,
-    this.fileBytes,
+    this.attachments = const [],
   });
 
   Map<String, dynamic> toJson() {
-    final map = {
+    final map = <String, dynamic>{
       'id': id,
       'timestamp': timestamp.toUtc().toIso8601String(),
+      'text': text,
+      'type': attachments.isEmpty ? 'text' : 'attachment',
     };
 
-    if (fileBytes != null) {
-      // При наличии файла — это attachment
-      map['type'] = 'attachment';
-      map['fileName'] = fileName!;
-      map['mimeType'] = mimeType!;
-      map['data'] = base64Encode(fileBytes!);
-      // можно включить текст, если нужно:
-      if (text.isNotEmpty) map['text'] = text;
-    } else {
-      // Просто текстовое сообщение
-      map['type'] = 'text';
-      map['text'] = text;
+    if (attachments.isNotEmpty) {
+      // Формируем список JSON-объектов для каждого вложения
+      map['attachments'] = attachments.map((a) {
+        return <String, dynamic>{
+          'name': a.name,
+          'mime': a.mime,
+          'data': base64Encode(a.bytes),
+        };
+      }).toList();
     }
 
     return map;
   }
 
   factory UserMessage.fromJson(Map<String, dynamic> json) {
-    final type = json['type'] as String? ?? 'text';
+    final type = (json['type'] as String?) ?? 'text';
+    final id = (json['id'] as String?) ?? '';
+    final timestamp = DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now();
+    final text = (json['text'] as String?) ?? '';
+
     if (type == 'attachment') {
-      final dataStr = json['data'] as String? ?? '';
+      final attachmentsJson = json['attachments'] as List<dynamic>? ?? [];
+      final attachments = attachmentsJson.map((item) {
+        final name = item['name'] as String? ?? '';
+        final mime = item['mime'] as String? ?? 'application/octet-stream';
+        final dataStr = item['data'] as String? ?? '';
+        final bytes = base64Decode(dataStr);
+        return Attachment(name: name, mime: mime, bytes: Uint8List.fromList(bytes));
+      }).toList();
+
       return UserMessage(
-        id: json['id'] ?? '',
-        timestamp: DateTime.parse(json['timestamp'] ?? ''),
-        text: json['text'] ?? '',
-        fileName: json['fileName'],
-        mimeType: json['mimeType'],
-        fileBytes: base64Decode(dataStr),
+        id: id,
+        text: text,
+        timestamp: timestamp,
+        attachments: attachments,
       );
     } else {
       return UserMessage(
-        id: json['id'] ?? '',
-        timestamp: DateTime.parse(json['timestamp'] ?? ''),
-        text: json['text'] ?? '',
+        id: id,
+        text: text,
+        timestamp: timestamp,
+        attachments: const [],
       );
     }
   }

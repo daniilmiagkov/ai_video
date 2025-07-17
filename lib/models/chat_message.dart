@@ -22,30 +22,31 @@ class ChatMessage {
   });
 
   /// Единая фабрика для сообщений от пользователя (текст + вложение)
-  factory ChatMessage.fromUser(UserMessage msg) {
-    if (msg.fileBytes != null) {
-      // вложение + (опционально) текст
-      return ChatMessage(
-        id: msg.id,
-        isUser: true,
-        type: ChatMessageType.attachment,
-        body: {
-          'bytes': msg.fileBytes,
-          'name': msg.fileName,
-          'mime': msg.mimeType,
-          'text': msg.text,      // сохраняем и текст, если был введён
-        },
-      );
-    } else {
-      // просто текст
-      return ChatMessage(
-        id: msg.id,
-        isUser: true,
-        type: ChatMessageType.textMd,
-        body: msg.text,
-      );
-    }
+// lib/models/chat_message.dart (фрагмент)
+factory ChatMessage.fromUser(UserMessage msg) {
+  if (msg.attachments.isNotEmpty) {
+    return ChatMessage(
+      id: msg.id,
+      isUser: true,
+      type: ChatMessageType.attachment,
+      body: {
+        'text': msg.text,
+        'attachments': msg.attachments.map((a) => {
+          'name': a.name,
+          'mime': a.mime,
+          'bytes': a.bytes,
+        }).toList(),
+      },
+    );
+  } else {
+    return ChatMessage(
+      id: msg.id,
+      isUser: true,
+      type: ChatMessageType.textMd,
+      body: msg.text,
+    );
   }
+}
 
   /// Фабрика для сообщений от сервера (осталось без изменений)
  factory ChatMessage.fromServer(ServerMessage serverMsg) {
