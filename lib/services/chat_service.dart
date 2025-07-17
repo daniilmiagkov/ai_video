@@ -1,15 +1,14 @@
-// lib/api/chat_service.dart
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:web_socket_channel/html.dart';
-import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
 import '../models/server_message.dart';
 import '../models/user_message.dart';
+
+// Импортируем кроссплатформенную функцию создания канала
+import '../ws/websocket_platform.dart';
 
 class ChatService {
   final String url;
@@ -28,12 +27,7 @@ class ChatService {
 
   void _connect() {
     try {
-      // Выбираем реализацию по платформе
-      if (kIsWeb) {
-        _channel = HtmlWebSocketChannel.connect(url);
-      } else {
-        _channel = IOWebSocketChannel.connect(Uri.parse(url));
-      }
+      _channel = createWebSocket(url); // ✅ кроссплатформенный канал
 
       onConnected?.call();
 
