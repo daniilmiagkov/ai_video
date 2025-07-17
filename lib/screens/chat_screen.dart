@@ -12,7 +12,7 @@ import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({Key? key}) : super(key: key);
+  const ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -75,22 +75,6 @@ _chatService.onError = (e) => print('WebSocket error: $e');
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
-  void _handleSend(String text) {
-    final session = _sessions.firstWhere((s) => s.id == _activeSessionId);
-    final id = DateTime.now().millisecondsSinceEpoch.toString();
-
-    final userMessage = UserMessage(
-      id: id,
-      text: text,
-      timestamp: DateTime.now(),
-    );
-
-    setState(() {
-      session.messages.add(ChatMessage.fromUser(userMessage));
-    });
-
-    _chatService.sendUserMessage(userMessage);
-  }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
@@ -101,6 +85,17 @@ _chatService.onError = (e) => print('WebSocket error: $e');
       );
     }
   }
+
+  void _handleSend(UserMessage userMsg) {
+  final session = _sessions.firstWhere((s) => s.id == _activeSessionId);
+
+  setState(() {
+    session.messages.add(ChatMessage.fromUser(userMsg));
+  });
+
+  _chatService.sendUserMessage(userMsg);
+}
+
 
   @override
   void dispose() {
@@ -142,10 +137,10 @@ _chatService.onError = (e) => print('WebSocket error: $e');
               ),
             ),
           ),
-          ChatInput(
-            onSend: _handleSend,
-            controller: _textController,
-          ),
+     ChatInput(
+  controller: _textController,
+  onSend: _handleSend, // где ты уже обрабатываешь UserMessage
+),
         ],
       ),
     );

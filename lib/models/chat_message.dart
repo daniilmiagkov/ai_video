@@ -1,11 +1,11 @@
+import 'dart:typed_data';
 import 'server_message.dart';
 import 'user_message.dart';
 
 enum ChatMessageType {
   textMd,
-  image,
   system,
-  // можно позже добавить: code, video, file, etc.
+  attachment,
 }
 
 class ChatMessage {
@@ -21,18 +21,34 @@ class ChatMessage {
     required this.body,
   });
 
-  /// Создание из `UserMessage` (отправка пользователем)
-  factory ChatMessage.fromUser(UserMessage userMsg) {
-    return ChatMessage(
-      id: userMsg.id,
-      isUser: true,
-      type: ChatMessageType.textMd,
-      body: userMsg.text,
-    );
+  /// Единая фабрика для сообщений от пользователя (текст + вложение)
+  factory ChatMessage.fromUser(UserMessage msg) {
+    if (msg.fileBytes != null) {
+      // вложение + (опционально) текст
+      return ChatMessage(
+        id: msg.id,
+        isUser: true,
+        type: ChatMessageType.attachment,
+        body: {
+          'bytes': msg.fileBytes,
+          'name': msg.fileName,
+          'mime': msg.mimeType,
+          'text': msg.text,      // сохраняем и текст, если был введён
+        },
+      );
+    } else {
+      // просто текст
+      return ChatMessage(
+        id: msg.id,
+        isUser: true,
+        type: ChatMessageType.textMd,
+        body: msg.text,
+      );
+    }
   }
 
-  /// Создание из `ServerMessage` (ответ сервера)
-  factory ChatMessage.fromServer(ServerMessage serverMsg) {
+  /// Фабрика для сообщений от сервера (осталось без изменений)
+ factory ChatMessage.fromServer(ServerMessage serverMsg) {
     if (serverMsg is TextMessage) {
       return ChatMessage(
         id: serverMsg.id,
@@ -66,24 +82,53 @@ class ChatMessage {
 
     throw Exception('Unknown ServerMessage type');
   }
-
   Map<String, dynamic> toJson() {
-    return {
+    final base = {
       'id': id,
       'isUser': isUser,
       'type': type.name,
-      'body': body,
     };
+
+    if (type == ChatMessageType.attachment && body is Map) {
+      final map = body as Map<String, dynamic>;
+      base.addAll({
+        'name': map['name'],
+        'mime': map['mime'],
+        'text': map['text'],
+        // байты в list<int> для JSON
+        'data': (map['bytes'] as Uint8List).toList(),
+      });
+    } else {
+      base['body'] = body;
+    }
+    return base;
   }
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    final type = ChatMessageType.values.firstWhere(
+      (e) => e.name == json['type'],
+      orElse: () => ChatMessageType.textMd,
+    );
+
+    if (type == ChatMessageType.attachment) {
+      final dataList = List<int>.from(json['data'] as List<dynamic>);
+      return ChatMessage(
+        id: json['id'] ?? '',
+        isUser: json['isUser'] ?? false,
+        type: type,
+        body: {
+          'name': json['name'],
+          'mime': json['mime'],
+          'text': json['text'] ?? '',
+          'bytes': Uint8List.fromList(dataList),
+        },
+      );
+    }
+
     return ChatMessage(
       id: json['id'] ?? '',
       isUser: json['isUser'] ?? false,
-      type: ChatMessageType.values.firstWhere(
-        (e) => e.name == json['type'],
-        orElse: () => ChatMessageType.textMd,
-      ),
+      type: type,
       body: json['body'],
     );
   }

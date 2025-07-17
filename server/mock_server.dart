@@ -8,91 +8,134 @@ void main() async {
   print('🚀 WebSocket mock server listening on ws://localhost:8080');
 
   await for (var request in server) {
-    if (WebSocketTransformer.isUpgradeRequest(request)) {
-      final socket = await WebSocketTransformer.upgrade(request);
+    if (!WebSocketTransformer.isUpgradeRequest(request)) {
+      request.response
+        ..statusCode = HttpStatus.forbidden
+        ..close();
+      continue;
+    }
 
-      // Приветственное сообщение
-      socket.add(jsonEncode({
-        'type': 'text',
-        'id': 'assistant-welcome',
-        'text': '''
+    final socket = await WebSocketTransformer.upgrade(request);
+    print('🔌 Client connected from ${request.connectionInfo?.remoteAddress.address}');
+
+    // Приветственное сообщение
+    final welcome = {
+      'type': 'text',
+      'id': 'assistant-welcome',
+      'text': '''
 👋 **Привет!** Добро пожаловать в чат.
 
 > Я здесь, чтобы помочь вам с любыми вопросами.
 
-**Попробуйте написать что‑нибудь — и я отвечу замоканным Markdown.**
+**Попробуйте отправить текст или вложение — и я отвечу!**
 '''
-      }));
+    };
+    socket.add(jsonEncode(welcome));
+    print('➡️ Sent welcome message');
 
-      socket.listen((data) {
-        final msg = jsonDecode(data as String);
+    socket.listen(
+      (data) {
+        print('⬅️ Raw data received: ${data.runtimeType}, length: ${data.toString().length}');
+        Map<String, dynamic> msg;
+        try {
+          msg = jsonDecode(data as String) as Map<String, dynamic>;
+        } catch (e) {
+          print('❌ JSON decode error: $e');
+          socket.add(jsonEncode({
+            'type': 'error',
+            'message': 'Invalid JSON',
+          }));
+          return;
+        }
+
+        // Если вложение приходит как Base64
+        if (msg['type'] == 'attachment') {
+          final name = msg['fileName'] ?? 'file';
+          final mime = msg['mimeType'] ?? 'application/octet-stream';
+          final b64 = msg['data'] as String? ?? '';
+          List<int> bytes;
+          try {
+            bytes = base64Decode(b64);
+          } catch (e) {
+            print('❌ Base64 decode error: $e');
+            socket.add(jsonEncode({
+              'type': 'error',
+              'message': 'Invalid attachment data',
+            }));
+            return;
+          }
+          final size = bytes.length;
+          print('📩 Attachment: name=$name, mime=$mime, size=$size bytes');
+
+          // Ответ о файле
+          final reply = {
+            'type': 'text',
+            'id': 'assistant-${DateTime.now().millisecondsSinceEpoch}',
+            'text': '''
+### Вложение получено
+- **Имя файла:** $name  
+- **MIME‑тип:** $mime  
+- **Размер:** $size байт  
+
+_Файл успешно загружен!_ 🎉
+'''
+          };
+          socket.add(jsonEncode(reply));
+          print('➡️ Sent attachment info');
+          socket.add(jsonEncode({'type': 'done'}));
+          print('➡️ Sent done after attachment');
+          return;
+        }
+
+        // Обычное текстовое сообщение
         final userText = msg['text']?.toString().trim() ?? '';
-        print('📩 User message: $userText');
+        print('📩 Text message: "$userText"');
 
-        // Сигнал «печатает»
         socket.add(jsonEncode({'type': 'typing'}));
+        print('➡️ Sent typing');
 
-        // Эмулируем задержку
         Future.delayed(Duration(milliseconds: 400 + random.nextInt(600)), () {
-          // Общие шаблоны Markdown‑ответов
           final templates = [
             () => '''
 #### Ваш запрос
-> **${userText}**
+> **$userText**
 
-Вот мой короткий ответ с **жирным**, _курсивом_ и [ссылкой](https://example.com).
+Вот мой короткий ответ: **жирным**, _курсив_, [ссылка](https://example.com).
 ''',
             () => '''
-**Список действий по теме "${userText}":**
-1. Шаг **первый**  
-2. Шаг _второй_  
-3. **Завершение**
-
-_Удачи!_ 🚀
-''',
-            () => '''
-| Параметр        | Значение                      |
-|-----------------|-------------------------------|
-| Запрос          | `${userText}`                 |
-| Время           | ${DateTime.now().toIso8601String()} |
-| Случайное число | ${random.nextInt(100)}        |
-''',
-            () => '''
-> "Это пример цитаты по теме **${userText}**."
-
-- Пункт A  
-- Пункт B  
-
-**Конец цитаты**
+**Шаги по теме «$userText»:**
+1. Шаг **1**  
+2. Шаг _2_  
+3. ✔️ Завершено
 ''',
             () => '''
 ```json
 {
-  "request": "${userText}",
+  "request": "$userText",
   "status": "ok",
   "timestamp": "${DateTime.now().toUtc().toIso8601String()}"
 }
-Надеюсь, было полезно!
 '''
 ];
-
       final responseText = templates[random.nextInt(templates.length)]();
-
-      // Отправляем основной ответ
-      socket.add(jsonEncode({
-        'type': 'text',
-        'id': 'assistant-${DateTime.now().millisecondsSinceEpoch}',
-        'text': responseText,
-      }));
-      // Отправляем done
-      socket.add(jsonEncode({'type': 'done'}));
-    });
-  });
-
-} else {
-  request.response
-    ..statusCode = HttpStatus.forbidden
-    ..close();
-}
+final reply = {
+'type': 'text',
+'id': 'assistant-${DateTime.now().millisecondsSinceEpoch}',
+'text': responseText,
+};
+socket.add(jsonEncode(reply));
+print('➡️ Sent text reply');
+socket.add(jsonEncode({'type': 'done'}));
+print('➡️ Sent done');
+});
+},
+onError: (err) {
+print('❌ WebSocket error: $err');
+},
+onDone: () {
+print('🔒 Client disconnected');
+},
+cancelOnError: true,
+);
 }
 }
