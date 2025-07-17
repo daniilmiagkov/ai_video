@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';  // ← импорт Markdown
 import '../models/chat_message.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -12,22 +13,22 @@ class ChatBubble extends StatelessWidget {
     final isSystem = message.type == ChatMessageType.system;
 
     final backgroundColor = isSystem
-        ? Colors.grey.shade300
-        : isUser
-            ? Theme.of(context).colorScheme.primary
-            : Colors.grey.shade200;
+      ? Colors.grey.shade300
+      : isUser
+        ? Theme.of(context).colorScheme.primary
+        : Colors.grey.shade200;
 
     final textColor = isSystem
-        ? Colors.black54
-        : isUser
-            ? Colors.white
-            : Colors.black87;
+      ? Colors.black54
+      : isUser
+        ? Colors.white
+        : Colors.black87;
 
     final alignment = isSystem
-        ? Alignment.center
-        : isUser
-            ? Alignment.centerRight
-            : Alignment.centerLeft;
+      ? Alignment.center
+      : isUser
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
 
     final body = message.body?.toString() ?? '';
 
@@ -41,11 +42,11 @@ class ChatBubble extends StatelessWidget {
           color: backgroundColor,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
-          body,
-          style: TextStyle(
-            color: textColor,
-            fontStyle: isSystem ? FontStyle.italic : FontStyle.normal,
+        child: MarkdownBody(
+          data: body,
+          styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
+            p: TextStyle(color: textColor),
+            // при необходимости можно настроить стили заголовков, ссылок и т.д.
           ),
         ),
       ),
