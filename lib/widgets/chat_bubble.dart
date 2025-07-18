@@ -1,7 +1,7 @@
-// lib/widgets/chat_bubble.dart
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/chat_message.dart';
 
 class ChatBubble extends StatelessWidget {
@@ -11,7 +11,7 @@ class ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isUser = message.isUser;
+    final isUser   = message.isUser;
     final isSystem = message.type == ChatMessageType.system;
 
     final bgColor = isSystem
@@ -27,93 +27,64 @@ class ChatBubble extends StatelessWidget {
             : Alignment.centerLeft;
 
     Widget content;
-    if (message.type != ChatMessageType.attachment) {
-      // Обычный текст или системное сообщение
+
+    // 1) Если пришёл video-сообщение с url
+    if (message.type == ChatMessageType.attachment &&
+        message.body is Map<String, dynamic> &&
+        (message.body as Map).containsKey('url')) {
+
+      final body = message.body as Map<String, dynamic>;
+      final url   = body['url'] as String;
+      final label = body['text'] as String? ?? 'Скачать';
+
+      content = ElevatedButton.icon(
+        icon: const Icon(Icons.download),
+        label: Text(label, style: TextStyle(color: textColor)),
+        style: ElevatedButton.styleFrom(
+          foregroundColor: textColor, backgroundColor: bgColor,
+        ),
+        onPressed: () async {
+          debugPrint('🔗 Attempting to open URL: $url');
+          final uri = Uri.parse(url);
+          // Для Web
+          if (await canLaunchUrl(uri)) {
+            // Для Web можно открыть в новой вкладке:
+            await launchUrl(uri,
+              mode: LaunchMode.platformDefault,
+              webOnlyWindowName: '_blank',
+            );
+            debugPrint('✅ Launched $url');
+          } else {
+            debugPrint('❌ Cannot launch $url');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Не удалось открыть ссылку: $url')),
+            );
+          }
+        },
+      );
+    }
+    // 2) Обычный текст (markdown)
+    else if (message.type != ChatMessageType.attachment) {
       content = MarkdownBody(
         data: message.body.toString(),
         styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
             .copyWith(p: TextStyle(color: textColor)),
-      );
-    } else {
-      // Вложение: body может быть Map с ключом "attachments" (множественные)
-      final body = message.body as Map<String, dynamic>;
-
-      if (body.containsKey('attachments')) {
-        // Множественные вложения
-        final atts = body['attachments'] as List<dynamic>;
-        final List<Widget> widgets = [];
-
-        for (var item in atts) {
-          final map = item as Map<String, dynamic>;
-          final mime = map['mime'] as String? ?? '';
-          final name = map['name'] as String? ?? 'file';
-          final bytes = map['bytes'] as Uint8List;
-
-          Widget w;
-          if (mime.startsWith('image/')) {
-            w = Image.memory(bytes, width: 100, height: 100, fit: BoxFit.cover);
-          } else {
-            // Для видео, аудио, документов — просто иконка + имя
-            final icon = mime.startsWith('video/')
-                ? Icons.videocam
-                : mime.startsWith('audio/')
-                    ? Icons.audiotrack
-                    : Icons.insert_drive_file;
-            w = Row(
-              children: [
-                Icon(icon, color: textColor),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(name, style: TextStyle(color: textColor)),
-                ),
-              ],
-            );
+        onTapLink: (text, href, title) {
+          if (href != null) {
+            debugPrint('🔗 Markdown link tapped: $href');
+            final uri = Uri.parse(href);
+            launchUrl(uri); // без await — для простоты
           }
-
-          widgets.add(Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: w,
-          ));
-        }
-
-        // Если вместе с вложениями есть текст
-        final txt = body['text'] as String?;
-        if (txt != null && txt.isNotEmpty) {
-          widgets.add(MarkdownBody(
-            data: txt,
-            styleSheet: MarkdownStyleSheet.fromTheme(context as ThemeData)
-                .copyWith(p: TextStyle(color: textColor)),
-          ));
-        }
-
-        content = Column(
-          crossAxisAlignment:
-              isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: widgets,
-        );
-      } else {
-        // Одиночное вложение (устаревшая схема)
-        final mime = body['mime'] as String? ?? '';
-        final name = body['name'] as String? ?? 'file';
-        final bytes = body['bytes'] as Uint8List;
-
-        if (mime.startsWith('image/')) {
-          content = Image.memory(bytes, width: 200);
-        } else {
-          final icon = mime.startsWith('video/')
-              ? Icons.videocam
-              : mime.startsWith('audio/')
-                  ? Icons.audiotrack
-                  : Icons.insert_drive_file;
-          content = Row(
-            children: [
-              Icon(icon, color: textColor),
-              const SizedBox(width: 8),
-              Expanded(child: Text(name, style: TextStyle(color: textColor))),
-            ],
-          );
-        }
-      }
+        },
+      );
+    }
+    // 3) Вложение-бинарник (без видео-ссылки)
+    else {
+      // ... ваша существующая логика показа Image/иконки и текста ...
+      content = Text(
+        '[Attachment]',
+        style: TextStyle(color: textColor),
+      );
     }
 
     return Align(

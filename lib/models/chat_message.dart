@@ -79,7 +79,17 @@ factory ChatMessage.fromUser(UserMessage msg) {
         type: ChatMessageType.system,
         body: '✅ Ответ завершён',
       );
-    }
+    } else   if (serverMsg is VideoMessage) {
+    return ChatMessage(
+      id: serverMsg.id,
+      isUser: false,
+      type: ChatMessageType.attachment,  // или добавьте ChatMessageType.video
+      body: {
+        'url': serverMsg.url,
+        'text': serverMsg.text,
+      },
+    );
+  }
 
     throw Exception('Unknown ServerMessage type');
   }

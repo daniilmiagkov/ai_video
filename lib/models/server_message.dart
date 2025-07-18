@@ -3,6 +3,7 @@ enum ServerMessageType {
   typing,
   error,
   done,
+  video
 }
 
 abstract class ServerMessage {
@@ -25,10 +26,21 @@ abstract class ServerMessage {
         return ErrorMessage(message: json['message'] ?? 'Unknown error');
       case 'done':
         return DoneMessage();
+      case 'video': return VideoMessage(
+                      id: json['id'],
+                      url: json['url'],
+                      text: json['text'],
+                    );
       default:
         throw Exception('Unknown server message type: $typeStr');
     }
   }
+}
+
+class VideoMessage extends ServerMessage {
+  final String id, url, text;
+  VideoMessage({required this.id, required this.url, required this.text})
+    : super(ServerMessageType.video);
 }
 
 class TextMessage extends ServerMessage {
