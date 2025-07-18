@@ -6,7 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../models/chat_message.dart';
 import '../models/chat_session.dart';
 import '../models/user_message.dart';
-import '../models/server_message.dart'; // ⬅️ не забываем!
+// ⬅️ не забываем!
 import '../widgets/chat_sidebar.dart';
 import '../widgets/chat_bubble.dart';
 import '../widgets/chat_input.dart';
@@ -34,10 +34,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _chatService = ChatService(AppConfig.websocketUrl);
 
-_chatService.onConnected = () => print('WebSocket connected');
-_chatService.onDisconnected = () => print('WebSocket disconnected');
-_chatService.onError = (e) => print('WebSocket error: $e');
-
+    _chatService.onConnected = () => print('WebSocket connected');
+    _chatService.onDisconnected = () => print('WebSocket disconnected');
+    _chatService.onError = (e) => print('WebSocket error: $e');
 
     _chatService.messages.listen((serverMessage) {
       final session = _sessions.firstWhere((s) => s.id == _activeSessionId);
@@ -49,16 +48,12 @@ _chatService.onError = (e) => print('WebSocket error: $e');
 
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     });
-
   }
 
   void _createNewSession() {
     final id = _uuid.v4();
     setState(() {
-      _sessions.add(ChatSession(
-        id: id,
-        title: 'Чат ${_sessions.length + 1}',
-      ));
+      _sessions.add(ChatSession(id: id, title: 'Чат ${_sessions.length + 1}'));
       _activeSessionId = id;
     });
 
@@ -75,7 +70,6 @@ _chatService.onError = (e) => print('WebSocket error: $e');
     WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
   }
 
-
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
@@ -87,15 +81,14 @@ _chatService.onError = (e) => print('WebSocket error: $e');
   }
 
   void _handleSend(UserMessage userMsg) {
-  final session = _sessions.firstWhere((s) => s.id == _activeSessionId);
+    final session = _sessions.firstWhere((s) => s.id == _activeSessionId);
 
-  setState(() {
-    session.messages.add(ChatMessage.fromUser(userMsg));
-  });
+    setState(() {
+      session.messages.add(ChatMessage.fromUser(userMsg));
+    });
 
-  _chatService.sendUserMessage(userMsg);
-}
-
+    _chatService.sendUserMessage(userMsg);
+  }
 
   @override
   void dispose() {
@@ -105,56 +98,54 @@ _chatService.onError = (e) => print('WebSocket error: $e');
     super.dispose();
   }
 
- @override
-Widget build(BuildContext context) {
-  final activeSession =
-      _sessions.firstWhere((s) => s.id == _activeSessionId);
+  @override
+  Widget build(BuildContext context) {
+    final activeSession = _sessions.firstWhere((s) => s.id == _activeSessionId);
 
-  return Scaffold(
-    drawer: ChatSidebar(
-      sessions: _sessions,
-      activeSessionId: _activeSessionId,
-      onSessionSelected: _onSessionSelected,
-    ),
-    appBar: AppBar(
-      title: Text(activeSession.title),
-      leading: Builder(
-        builder: (ctx) => IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => Scaffold.of(ctx).openDrawer(),
-        ),
+    return Scaffold(
+      drawer: ChatSidebar(
+        sessions: _sessions,
+        activeSessionId: _activeSessionId,
+        onSessionSelected: _onSessionSelected,
       ),
-    ),
-    body: Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: Column(
-          children: [
-            // Список сообщений
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(12),
-                itemCount: activeSession.messages.length,
-                itemBuilder: (_, i) =>
-                    ChatBubble(message: activeSession.messages[i]),
-              ),
-            ),
-            // Поле ввода
-SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: ChatInput(
-              controller: _textController,
-              onSend: _handleSend,
-            ),
+      appBar: AppBar(
+        title: Text(activeSession.title),
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
-          ],
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Column(
+            children: [
+              // Список сообщений
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(12),
+                  itemCount: activeSession.messages.length,
+                  itemBuilder: (_, i) =>
+                      ChatBubble(message: activeSession.messages[i]),
+                ),
+              ),
+              // Поле ввода
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: ChatInput(
+                    controller: _textController,
+                    onSend: _handleSend,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 }

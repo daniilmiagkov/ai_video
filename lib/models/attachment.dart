@@ -12,9 +12,5 @@ class Attachment {
   /// Сырые байты файла
   final Uint8List bytes;
 
-  Attachment({
-    required this.name,
-    required this.mime,
-    required this.bytes,
-  });
+  Attachment({required this.name, required this.mime, required this.bytes});
 }

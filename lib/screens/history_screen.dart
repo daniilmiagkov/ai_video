@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/chat_session.dart';
-import 'chat_screen.dart';  // сейчас ChatScreen не принимает sessionId
+import 'chat_screen.dart'; // сейчас ChatScreen не принимает sessionId
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -32,10 +32,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               itemCount: _sessions.length,
               itemBuilder: (context, i) {
                 final s = _sessions[i];
-                return ListTile(
-                  title: Text(s.title),
-                  onTap: _openSession,
-                );
+                return ListTile(title: Text(s.title), onTap: _openSession);
               },
             ),
       floatingActionButton: FloatingActionButton(

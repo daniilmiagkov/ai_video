@@ -2,11 +2,7 @@ import 'dart:typed_data';
 import 'server_message.dart';
 import 'user_message.dart';
 
-enum ChatMessageType {
-  textMd,
-  system,
-  attachment,
-}
+enum ChatMessageType { textMd, system, attachment }
 
 class ChatMessage {
   final String id;
@@ -22,34 +18,32 @@ class ChatMessage {
   });
 
   /// Единая фабрика для сообщений от пользователя (текст + вложение)
-// lib/models/chat_message.dart (фрагмент)
-factory ChatMessage.fromUser(UserMessage msg) {
-  if (msg.attachments.isNotEmpty) {
-    return ChatMessage(
-      id: msg.id,
-      isUser: true,
-      type: ChatMessageType.attachment,
-      body: {
-        'text': msg.text,
-        'attachments': msg.attachments.map((a) => {
-          'name': a.name,
-          'mime': a.mime,
-          'bytes': a.bytes,
-        }).toList(),
-      },
-    );
-  } else {
-    return ChatMessage(
-      id: msg.id,
-      isUser: true,
-      type: ChatMessageType.textMd,
-      body: msg.text,
-    );
+  // lib/models/chat_message.dart (фрагмент)
+  factory ChatMessage.fromUser(UserMessage msg) {
+    if (msg.attachments.isNotEmpty) {
+      return ChatMessage(
+        id: msg.id,
+        isUser: true,
+        type: ChatMessageType.attachment,
+        body: {
+          'text': msg.text,
+          'attachments': msg.attachments
+              .map((a) => {'name': a.name, 'mime': a.mime, 'bytes': a.bytes})
+              .toList(),
+        },
+      );
+    } else {
+      return ChatMessage(
+        id: msg.id,
+        isUser: true,
+        type: ChatMessageType.textMd,
+        body: msg.text,
+      );
+    }
   }
-}
 
   /// Фабрика для сообщений от сервера (осталось без изменений)
- factory ChatMessage.fromServer(ServerMessage serverMsg) {
+  factory ChatMessage.fromServer(ServerMessage serverMsg) {
     if (serverMsg is TextMessage) {
       return ChatMessage(
         id: serverMsg.id,
@@ -79,26 +73,19 @@ factory ChatMessage.fromUser(UserMessage msg) {
         type: ChatMessageType.system,
         body: '✅ Ответ завершён',
       );
-    } else   if (serverMsg is VideoMessage) {
-    return ChatMessage(
-      id: serverMsg.id,
-      isUser: false,
-      type: ChatMessageType.attachment,  // или добавьте ChatMessageType.video
-      body: {
-        'url': serverMsg.url,
-        'text': serverMsg.text,
-      },
-    );
-  }
+    } else if (serverMsg is VideoMessage) {
+      return ChatMessage(
+        id: serverMsg.id,
+        isUser: false,
+        type: ChatMessageType.attachment, // или добавьте ChatMessageType.video
+        body: {'url': serverMsg.url, 'text': serverMsg.text},
+      );
+    }
 
     throw Exception('Unknown ServerMessage type');
   }
   Map<String, dynamic> toJson() {
-    final base = {
-      'id': id,
-      'isUser': isUser,
-      'type': type.name,
-    };
+    final base = {'id': id, 'isUser': isUser, 'type': type.name};
 
     if (type == ChatMessageType.attachment && body is Map) {
       final map = body as Map<String, dynamic>;

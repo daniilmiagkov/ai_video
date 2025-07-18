@@ -1,10 +1,4 @@
-enum ServerMessageType {
-  text,
-  typing,
-  error,
-  done,
-  video
-}
+enum ServerMessageType { text, typing, error, done, video }
 
 abstract class ServerMessage {
   final ServerMessageType type;
@@ -16,21 +10,19 @@ abstract class ServerMessage {
 
     switch (typeStr) {
       case 'text':
-        return TextMessage(
-          id: json['id'] ?? '',
-          text: json['text'] ?? '',
-        );
+        return TextMessage(id: json['id'] ?? '', text: json['text'] ?? '');
       case 'typing':
         return TypingMessage();
       case 'error':
         return ErrorMessage(message: json['message'] ?? 'Unknown error');
       case 'done':
         return DoneMessage();
-      case 'video': return VideoMessage(
-                      id: json['id'],
-                      url: json['url'],
-                      text: json['text'],
-                    );
+      case 'video':
+        return VideoMessage(
+          id: json['id'],
+          url: json['url'],
+          text: json['text'],
+        );
       default:
         throw Exception('Unknown server message type: $typeStr');
     }
@@ -47,7 +39,8 @@ class TextMessage extends ServerMessage {
   final String id;
   final String text;
 
-  TextMessage({required this.id, required this.text}) : super(ServerMessageType.text);
+  TextMessage({required this.id, required this.text})
+    : super(ServerMessageType.text);
 }
 
 class TypingMessage extends ServerMessage {
@@ -63,6 +56,3 @@ class ErrorMessage extends ServerMessage {
 class DoneMessage extends ServerMessage {
   DoneMessage() : super(ServerMessageType.done);
 }
-
-
-

@@ -10,11 +10,7 @@ class ChatInput extends StatefulWidget {
   final TextEditingController controller;
   final void Function(UserMessage) onSend;
 
-  const ChatInput({
-    Key? key,
-    required this.controller,
-    required this.onSend,
-  }) : super(key: key);
+  const ChatInput({super.key, required this.controller, required this.onSend});
 
   @override
   State<ChatInput> createState() => _ChatInputState();
@@ -93,8 +89,8 @@ class _ChatInputState extends State<ChatInput> {
                                 att.mime.startsWith('video/')
                                     ? Icons.videocam
                                     : att.mime.startsWith('audio/')
-                                        ? Icons.audiotrack
-                                        : Icons.insert_drive_file,
+                                    ? Icons.audiotrack
+                                    : Icons.insert_drive_file,
                                 size: 40,
                                 color: Colors.grey.shade600,
                               ),

@@ -7,24 +7,24 @@ import '../models/chat_message.dart';
 class ChatBubble extends StatelessWidget {
   final ChatMessage message;
 
-  const ChatBubble({Key? key, required this.message}) : super(key: key);
+  const ChatBubble({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
-    final isUser   = message.isUser;
+    final isUser = message.isUser;
     final isSystem = message.type == ChatMessageType.system;
 
     final bgColor = isSystem
         ? Colors.grey.shade300
         : isUser
-            ? Theme.of(context).colorScheme.primary
-            : Colors.grey.shade200;
+        ? Theme.of(context).colorScheme.primary
+        : Colors.grey.shade200;
     final textColor = isUser ? Colors.white : Colors.black87;
     final alignment = isSystem
         ? Alignment.center
         : isUser
-            ? Alignment.centerRight
-            : Alignment.centerLeft;
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
 
     Widget content;
 
@@ -32,16 +32,16 @@ class ChatBubble extends StatelessWidget {
     if (message.type == ChatMessageType.attachment &&
         message.body is Map<String, dynamic> &&
         (message.body as Map).containsKey('url')) {
-
       final body = message.body as Map<String, dynamic>;
-      final url   = body['url'] as String;
+      final url = body['url'] as String;
       final label = body['text'] as String? ?? 'Скачать';
 
       content = ElevatedButton.icon(
         icon: const Icon(Icons.download),
         label: Text(label, style: TextStyle(color: textColor)),
         style: ElevatedButton.styleFrom(
-          foregroundColor: textColor, backgroundColor: bgColor,
+          foregroundColor: textColor,
+          backgroundColor: bgColor,
         ),
         onPressed: () async {
           debugPrint('🔗 Attempting to open URL: $url');
@@ -49,7 +49,8 @@ class ChatBubble extends StatelessWidget {
           // Для Web
           if (await canLaunchUrl(uri)) {
             // Для Web можно открыть в новой вкладке:
-            await launchUrl(uri,
+            await launchUrl(
+              uri,
               mode: LaunchMode.platformDefault,
               webOnlyWindowName: '_blank',
             );
@@ -67,8 +68,9 @@ class ChatBubble extends StatelessWidget {
     else if (message.type != ChatMessageType.attachment) {
       content = MarkdownBody(
         data: message.body.toString(),
-        styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(context))
-            .copyWith(p: TextStyle(color: textColor)),
+        styleSheet: MarkdownStyleSheet.fromTheme(
+          Theme.of(context),
+        ).copyWith(p: TextStyle(color: textColor)),
         onTapLink: (text, href, title) {
           if (href != null) {
             debugPrint('🔗 Markdown link tapped: $href');
@@ -81,10 +83,7 @@ class ChatBubble extends StatelessWidget {
     // 3) Вложение-бинарник (без видео-ссылки)
     else {
       // ... ваша существующая логика показа Image/иконки и текста ...
-      content = Text(
-        '[Attachment]',
-        style: TextStyle(color: textColor),
-      );
+      content = Text('[Attachment]', style: TextStyle(color: textColor));
     }
 
     return Align(

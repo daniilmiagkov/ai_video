@@ -5,9 +5,7 @@ class VideoService {
   VideoPlayerController? controller;
 
   Future<void> loadVideo(String path) async {
-    controller = VideoPlayerController.file(
-      File(path),
-    );
+    controller = VideoPlayerController.file(File(path));
     await controller!.initialize();
   }
 

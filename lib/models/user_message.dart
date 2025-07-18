@@ -42,7 +42,8 @@ class UserMessage {
   factory UserMessage.fromJson(Map<String, dynamic> json) {
     final type = (json['type'] as String?) ?? 'text';
     final id = (json['id'] as String?) ?? '';
-    final timestamp = DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now();
+    final timestamp =
+        DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now();
     final text = (json['text'] as String?) ?? '';
 
     if (type == 'attachment') {
@@ -52,7 +53,11 @@ class UserMessage {
         final mime = item['mime'] as String? ?? 'application/octet-stream';
         final dataStr = item['data'] as String? ?? '';
         final bytes = base64Decode(dataStr);
-        return Attachment(name: name, mime: mime, bytes: Uint8List.fromList(bytes));
+        return Attachment(
+          name: name,
+          mime: mime,
+          bytes: Uint8List.fromList(bytes),
+        );
       }).toList();
 
       return UserMessage(
